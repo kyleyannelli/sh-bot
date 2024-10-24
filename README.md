@@ -1,6 +1,6 @@
 # sh-bot
 
-sh-bot is a Go-based Discord bot that automates can automate things like your game server's lifecycle, ensuring it’s online only when needed based on who’s in your Discord server. Whether you're managing a Factorio server with friends or any other game, sh-bot runs scripts to start or stop your server when specified users go online or join voice channels, helping to save system resources when no one’s playing.
+sh-bot is a [Go-based](https://github.com/bwmarrin/discordgo) Discord bot that automates can automate things like your game server's lifecycle, ensuring it’s online only when needed based on who’s in your Discord server. Whether you're managing a Factorio server with friends or any other game, sh-bot runs scripts to start or stop your server when specified users go online or join voice channels, helping to save system resources when no one’s playing.
 
 Imagine having your game server fire up automatically when your friends are online and shut down when the last one logs off—all without manual intervention. That’s exactly what sh-bot does.
 
