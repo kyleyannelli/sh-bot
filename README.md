@@ -1,6 +1,6 @@
 # sh-bot
 
-sh-bot is a [Go-based](https://github.com/bwmarrin/discordgo) Discord bot that automates can automate things like your game server's lifecycle, ensuring it’s online only when needed based on who’s in your Discord server. Whether you're managing a Factorio server with friends or any other game, sh-bot runs scripts to start or stop your server when specified users go online or join voice channels, helping to save system resources when no one’s playing.
+sh-bot is a [Go-based](https://github.com/bwmarrin/discordgo) Discord bot that can run server side executables to automate things like your game server's lifecycle. Ensuring it’s only online based on who’s online in your Discord server. sh-bot is intended to run scripts when specified users go online, offline, join voice channels, and leave voice channels to help to save server side resources.
 
 Imagine having your game server fire up automatically when your friends are online and shut down when the last one logs off—all without manual intervention. That’s exactly what sh-bot does.
 
@@ -34,7 +34,7 @@ This Go-based bot allows you to automate shell script executions based on user p
 - **User Presence Monitoring**: Tracks the online/offline status of specified users.
 - **Voice Channel Monitoring**: Optionally monitors a specific voice channel for user activity.
 - **Automated Script Execution**: Runs custom scripts based on user presence or voice channel activity.
-- **Resource Management**: Helps in freeing up system resources by stopping services when not in use.
+- **Resource Management**: Helps in freeing up server side resources by stopping services when not in use.
 - **Configurable Cooldown**: Prevents rapid toggling of scripts through a customizable cooldown period.
 - **Debouncing Logic**: Ensures scripts are not executed multiple times due to quick presence fluctuations.
 
@@ -95,6 +95,10 @@ I am using `sh-bot` to start and stop a game server, you might have scripts like
 #### **`start.sh`**
 ```bash
 #!/bin/bash
+port="34197/udp"
+echo "Opening port ${port}"
+sudo ufw allow ${port}
+
 echo "Starting Factorio server..."
 systemctl start factorio
 echo "Factorio server started..."
@@ -103,6 +107,10 @@ echo "Factorio server started..."
 #### **`stop.sh`**
 ```bash
 #!/bin/bash
+port="34197/udp"
+echo "Closing port ${port}"
+sudo ufw deny ${port}
+
 echo "Stopping Factorio server..."
 systemctl stop factorio
 echo "Factorio server stopped..."
@@ -117,10 +125,10 @@ chmod +x start.sh stop.sh
 
 ### **Launching the Bot**
 
-1. Create and populate the `.env` file. I've provided `.env.example` for you. See 
+1. Create and populate the `.env` file. I've provided `.env.example` for you. See #environment-configuration-env-file
 2. Write the `online` and `offline` scripts (e.g., `start.sh`, `stop.sh`).
 3. Ensure the scripts are executable.
-4. Use the appropriate flags to run the bot. In this example I would like to start and stop my game server, only on the basis of the voice channel presence:
+4. Use the appropriate flags to run the bot. In this example I would like to start and stop my game server, only on the basis of the voice channel presence. I would also like the online script to be fired before the bot starts:
    ```bash
    ./sh-bot -online-script "./start.sh" -offline-script "./stop.sh" -start-online -vc-only
    ```
