@@ -18,7 +18,7 @@ import (
 	"github.com/lmittmann/tint"
 )
 
-const version = "sh-bot v1.0.0"
+const version = "sh-bot v1.0.1"
 const DEBOUNCE_PERIOD = 5 * time.Second
 
 var (
@@ -337,24 +337,39 @@ func stowStatuses(discord *discordgo.Session) {
 			slog.Warn(fmt.Sprintf("Failed to get members for guild %s: %v", guild.ID, err))
 			continue
 		}
-		for _, member := range members {
-			if _, exists := idsToTrack[member.User.ID]; !exists {
-				continue
-			}
-			if _, exists := lastPresenceState[member.User.ID]; exists {
-				continue
-			}
 
-			status := discordgo.StatusOffline
+		if !*requireVc {
+			for _, member := range members {
+				if _, exists := idsToTrack[member.User.ID]; !exists {
+					continue
+				}
+				if _, exists := lastPresenceState[member.User.ID]; exists {
+					continue
+				}
 
-			presence, err := discord.State.Presence(guild.ID, member.User.ID)
-			if err != nil {
-				slog.Warn(fmt.Sprintf("Failed to get presence for member %s in guild %s: %v", member.User.ID, guild.ID, err))
-				continue
+				status := discordgo.StatusOffline
+
+				presence, err := discord.State.Presence(guild.ID, member.User.ID)
+				if err != nil {
+					slog.Warn(fmt.Sprintf("Failed to get presence for member %s in guild %s: %v", member.User.ID, guild.ID, err))
+					continue
+				}
+
+				status = presence.Status
+				lastPresenceState[member.User.ID] = status
+				runAnyOnlineCheck()
 			}
+		}
 
-			status = presence.Status
-			lastPresenceState[member.User.ID] = status
+		if voiceChannelId != "" {
+			haveAny := false
+			for _, member := range getMembersInVoiceChannel(discord, guild.ID, voiceChannelId) {
+				if _, exists := idsToTrack[member.User.ID]; exists {
+					haveAny = true
+					break
+				}
+			}
+			markVoiceChannelPresenceChange(haveAny)
 		}
 	}
 }
@@ -398,10 +413,19 @@ func voiceChannelUpdate(discord *discordgo.Session, vs *discordgo.VoiceStateUpda
 			break
 		}
 	}
+
+	markVoiceChannelPresenceChange(haveAny)
+}
+
+func markVoiceChannelPresenceChange(haveAnyMembers bool) {
 	anyInVoiceChannelMutex.Lock()
-	anyInVoiceChannel = haveAny
+	anyInVoiceChannel = haveAnyMembers
 	anyInVoiceChannelMutex.Unlock()
 
+	runAnyOnlineCheck()
+}
+
+func runAnyOnlineCheck() {
 	anyOnlineMutex.Lock()
 	recievedAnyPresenceChange = true
 	newOnlineState := areAnyOnline()
