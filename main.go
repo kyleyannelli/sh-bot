@@ -18,7 +18,7 @@ import (
 	"github.com/lmittmann/tint"
 )
 
-const version = "sh-bot v1.0.1"
+const version = "sh-bot v1.0.2"
 const DEBOUNCE_PERIOD = 5 * time.Second
 
 var (
@@ -392,19 +392,26 @@ func validateScript(script string) {
 }
 
 func voiceChannelUpdate(discord *discordgo.Session, vs *discordgo.VoiceStateUpdate) {
-	doNotHaveCurrentChannelId := voiceChannelId != vs.ChannelID
-	doNotHavePreviousChannelId := vs.BeforeUpdate != nil && vs.BeforeUpdate.ChannelID != voiceChannelId
-	if doNotHaveCurrentChannelId && doNotHavePreviousChannelId {
+	updateVoiceChannelId := ""
+
+	// The following 2 if statements aren't needed, but makes the flow more understandable.
+	haveCurrentChannelId := vs.ChannelID != ""
+	if haveCurrentChannelId {
+		updateVoiceChannelId = vs.ChannelID
+	}
+
+	havePreviousChannelId := vs.BeforeUpdate != nil && vs.BeforeUpdate.ChannelID != ""
+	if !haveCurrentChannelId && havePreviousChannelId {
+		updateVoiceChannelId = vs.BeforeUpdate.ChannelID
+	}
+
+	badVoiceChannelId := voiceChannelId != updateVoiceChannelId
+	if badVoiceChannelId {
 		logIfNotDuplicate(fmt.Sprintf("Ignoring channel update for channel %v", vs.ChannelID), slog.LevelDebug)
 		return
 	}
 
-	var members []*discordgo.Member
-	if vs.ChannelID == "" {
-		members = getMembersInVoiceChannel(discord, vs.GuildID, vs.BeforeUpdate.ChannelID)
-	} else {
-		members = getMembersInVoiceChannel(discord, vs.GuildID, vs.ChannelID)
-	}
+	members := getMembersInVoiceChannel(discord, vs.GuildID, updateVoiceChannelId)
 
 	haveAny := false
 	for _, member := range members {
